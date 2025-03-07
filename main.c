@@ -53,7 +53,13 @@ int main(void) {
   int pid = fork();
   if (pid != 0) {
     void* lib = dlopen("libdirect.so", RTLD_NOW);
+    if (!lib) {
+      report(ERROR, "dlopen call");
+    }
     direct = dlsym(lib, "direct");
+    if (!lib) {
+      report(ERROR, "dlsym call");
+    }
     for (;;) {}
   }
 
