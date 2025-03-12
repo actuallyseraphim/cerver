@@ -4,6 +4,7 @@ OBJDIR = obj
 
 .PHONY: build
 build: main
+	make -C ./content/
 
 .PHONY: run
 run: build

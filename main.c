@@ -10,8 +10,8 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
-
-#define FORBIDDENRESPONSE "HTTP/1.1 403 Forbidden\nContent-Length: 185\nConnection: close\nContent-Type: text/html\n\n<html><head>\n<title>403 Forbidden</title>\n</head><body>\n<h1>Forbidden</h1>\nThe requested URL, file type or operation is not allowed on this simple static file webserver.\n</body></html>\n"
+#include <sys/mman.h>
+#include <pthread.h>
 
 enum ReportLevel {
   LOG,
@@ -43,30 +43,32 @@ void __report(const char* file, int line, enum ReportLevel level, const char* fm
     exit(1);
   }
 }
-#define report(l, f) __report(__FILE__, __LINE__, l, f)
+#define report(l, ...) __report(__FILE__, __LINE__, l, __VA_ARGS__)
 
-static void (*direct)(int);
+void (*direct)(int);
+
+//#define RELEASE
 
 int main(void) {
   int port = 8080;
   int err = 0;
-  int pid = fork();
-  if (pid != 0) {
-    void* lib = dlopen("libdirect.so", RTLD_NOW);
-    if (!lib) {
-      report(ERROR, "dlopen call");
-    }
-    direct = dlsym(lib, "direct");
-    if (!lib) {
-      report(ERROR, "dlsym call");
-    }
-    for (;;) {}
-  }
 
-  for (int i = 0; i < 32; i++) {
-    close(i);
+  #ifdef RELEASE
+  void* lib = dlopen("./content/libdirect.so", RTLD_NOW);
+  if (!lib) {
+    report(ERROR, "dlopen call %s", dlerror());
   }
+  direct = dlsym(lib, "direct");
+  if (!direct) {
+    report(ERROR, "dlsym call");
+  }
+  void (*init)(void) = dlsym(lib, "direct");
+  if (!init) {
+    report(ERROR, "dlsym call");
+  }
+  #endif
 
+  
   int listenfd = socket(AF_INET, SOCK_STREAM, 0);
   if (listenfd < 0) {
     report(ERROR, "socket call");
@@ -104,13 +106,32 @@ int main(void) {
       report(ERROR, "accept call");
     }
     
-    pid = fork();
+    int pid = fork();
     if (pid < 0) {
       report(ERROR,"fork call");
     } else {
       if(pid == 0) {
+	#ifndef RELEASE
+	void* lib = dlopen("./content/libdirect.so", RTLD_NOW);
+	if (!lib) {
+	  report(ERROR, "dlopen call");
+	}
+	direct = dlsym(lib, "direct");
+	if (!direct) {
+	  report(ERROR, "dlsym call");
+	}
+	void (*init)(void) = dlsym(lib, "direct");
+	if (!init) {
+	  report(ERROR, "dlsym call");
+	}
+	#endif
+
 	close(listenfd);
+	chdir("./content/");
 	direct(socketfd);
+	#ifndef RELEASE
+	dlclose(lib);
+	#endif
       } else {
 	close(socketfd);
       }
