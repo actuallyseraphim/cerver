@@ -2,6 +2,8 @@ CC = clang
 CFLAGS =
 OBJDIR = obj
 
+SHELL = bash
+
 .PHONY: build
 build: libdirect.so
 
