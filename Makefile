@@ -12,10 +12,10 @@ build: main
 run: build
 	LD_LIBRARY_PATH="./" ./main
 
-$(OBJDIR)/%.o: %.c %.h
-	$(CC) $(CFLAGS) -c -o $@ $<
+obj:
+	mkdir $(OBJDIR)
 
-$(OBJDIR)/%.o: %.c
+$(OBJDIR)/%.o: %.c $(wildcard %.h) obj
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 main: $(OBJDIR)/main.o

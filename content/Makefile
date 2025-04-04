@@ -7,10 +7,10 @@ SHELL = bash
 .PHONY: build
 build: libdirect.so
 
-$(OBJDIR)/%.o: %.c %.h
-	$(CC) $(CFLAGS) -c -fPIC -o $@ $<
+obj:
+	mkdir $(OBJDIR)
 
-$(OBJDIR)/%.o: %.c
+$(OBJDIR)/%.o: %.c $(wildcard %.h) obj
 	$(CC) $(CFLAGS) -c -fPIC -o $@ $<
 
 $(OBJDIR)/%.html.o: html/%.html
